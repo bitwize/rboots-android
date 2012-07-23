@@ -8,7 +8,7 @@ import android.view.*;
 public class RBootsActivity extends Activity
 {
     java.util.HashMap imageMap;
-
+    RBootsView _v;
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -17,16 +17,33 @@ public class RBootsActivity extends Activity
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, 
 			     WindowManager.LayoutParams.FLAG_FULLSCREEN);
-	RBootsView v = new RBootsView(this);
-	v.setFocusable(true);
-	v.requestFocus();
+	_v = new RBootsView(this);
+	_v.setFocusable(true);
+	_v.requestFocus();
 	setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);	
-	setContentView(v);
+	setContentView(_v);
 	
     }
     public void onPause()
     {
 	super.onPause();
-	
+	_v.pauseDrawing();
     }
+
+    public void onResume()
+    {
+	super.onResume();
+	_v.resumeDrawing();
+    }
+    public boolean onSearchRequested()
+    {
+	if(_v.isPaused()) {
+	    _v.unpauseGame();
+	}
+	else {
+	    _v.pauseGame();
+	}
+	return true;
+    }
+
 }

@@ -3,6 +3,7 @@ package net.parodycheck.rboots;
 import java.util.*;
 import android.util.*;
 import android.graphics.*;
+import android.media.*;
 import net.parodycheck.spritecorehc.*;
 
 public class RBootsPlayer extends Sprite
@@ -10,7 +11,10 @@ public class RBootsPlayer extends Sprite
 
     private static Bitmap thePlayerImg;
     private static ArrayList<Bitmap> theFlameImgs;
-
+    private SoundPool _pool;
+    private int _boostID;
+    private int _hurtID;
+    private int _boostSound = 0;
     private class RBootsPlayerAppearanceAgent implements SpriteAppearanceAgent
     {
 	private SpriteAppearanceAgent _oldAgent;
@@ -34,6 +38,7 @@ public class RBootsPlayer extends Sprite
 	}
     }
 
+
     public static void initPlayerImgs(android.app.Activity a) {
 	thePlayerImg = BitmapFactory.decodeResource(a.getResources(),R.drawable.player);
 	theFlameImgs = new ArrayList<Bitmap>();
@@ -45,30 +50,56 @@ public class RBootsPlayer extends Sprite
     private boolean _dead;
     private long _flickerTimer;
     private int _life;
-    public RBootsPlayer(RBootsView host) {
-	super(host,thePlayerImg);
+    private Sprite _flame;
+    public RBootsPlayer(RBootsView h) {
+	super(h,thePlayerImg);
+	_pool = h._pool;
+	_boostID = h._boost;
+	_hurtID = h._hurt;
 	SpriteAppearanceAgent a;
+	
 	a = appearanceAgent();
 	setAppearanceAgent(new RBootsPlayerAppearanceAgent(a));
 	setBehaviorAgent(new SpriteBehaviorAgent() {
 		public void act(Sprite s) {
-		    setVel(vel().x,vel().y + _accel);
-		    if(_flickerTimer > 0) {
-			_flickerTimer -= 20;
-			if(_flickerTimer <= 0) {
-			    setFlicker(false);
+		    if(!((RBootsView)host()).isPaused()) {
+			setVel(vel().x,vel().y + _accel);
+			_flame.moveTo(pos().x + 2,pos().y + shape().getHeight());
+			_flame.setCurrentFrame((_flame.currentFrame() + 1) % 2);
+			if(_flickerTimer > 0) {
+			    _flickerTimer -= 20;
+			    if(_flickerTimer <= 0) {
+				setFlicker(false);
+			    }
 			}
-		    }
-		    if(headAbove(walls().topEdgeFor(pos().x)) ||
-		       feetBelow(walls().bottomEdgeFor(pos().x))) {
-			possiblyHurt();
+			if(headAbove(walls().topEdgeFor(pos().x)) ||
+			   feetBelow(walls().bottomEdgeFor(pos().x))) {
+			    possiblyHurt();
+			}
+			DefaultBehaviorAgent.instance().act(s);
 		    }
 		}
 	    });
+
+	_flame = new Sprite(host(),theFlameImgs);
+	{
+	    final SpriteAppearanceAgent oldFlameAgent = _flame.appearanceAgent();
+	    _flame.setAppearanceAgent(new SpriteAppearanceAgent() {
+		    public void renderSpriteOn(Sprite aSprite,Canvas aCanvas)
+		    {
+			if(_accel < 0.0) {
+			    oldFlameAgent.renderSpriteOn(aSprite,aCanvas);
+			}
+		    }
+		});
+	}
+	
+
 	_dead = false;
 	_flickerTimer = 0;
 	_life = 3;
-	setHotspot((float)shape().getWidth() / 2,0.0f);
+	setHotspot((float)shape().getWidth() / 2.0f,0.0f);
+	_flame.setHotspot((float)_flame.shape().getWidth() / 2.0f,0.0f);
 	thrustOff();	
     }
 
@@ -83,12 +114,19 @@ public class RBootsPlayer extends Sprite
     public void thrustOn() {
 	if(!_dead) {
 	    _accel = -0.085f;
+	    if(_boostSound == 0) {
+		_boostSound = _pool.play(_boostID,1.0f,1.0f,1,-1,1.0f);
+	    }
 	}
     }
 
     public void thrustOff() {
 	if(!_dead) {
 	    _accel = 0.085f;
+	}
+	if(_boostSound != 0) {
+	    _pool.stop(_boostSound);
+	    _boostSound = 0;
 	}
     }
 
@@ -111,6 +149,7 @@ public class RBootsPlayer extends Sprite
 	setFlicker(true);
 	if(_life > 0) {
 	    RBootsView v = (RBootsView)host();
+	    _pool.play(_hurtID,1.0f,1.0f,1,0,1.0f);
 	    _life--;
 	    if(v != null) {
 		v.setLife(_life);

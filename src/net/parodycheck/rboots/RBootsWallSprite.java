@@ -49,6 +49,8 @@ public class RBootsWallSprite extends Sprite
     private int _wallDist;
     private double _xPos;
     private double _leftEdge;
+    private double _prevX;
+    private boolean _stopped;
     private Sprite _bg;
 
 
@@ -57,9 +59,15 @@ public class RBootsWallSprite extends Sprite
 	theWallImg = BitmapFactory.decodeResource(a.getResources(),R.drawable.wall);
     }
 
+    public static Bitmap wallImg() {
+	return theWallImg;
+    }
+
     public RBootsWallSprite(RBootsView host,Sprite bg) {
 	super(host,theWallImg);
 	_bg = bg;
+	_prevX = 0.0f;
+	_stopped = false;
 	_topEdges = new RingBuffer(200);
 	_bottomEdges = new RingBuffer(200);
 	SpriteAppearanceAgent a =
@@ -81,17 +89,30 @@ public class RBootsWallSprite extends Sprite
 	SpriteBehaviorAgent b =
 	    new SpriteBehaviorAgent() {
 		public void act(Sprite aSprite) {
-		    while(_xPos > pos().x) {
-			_topEdges.append(nextWallTop());
-			_bottomEdges.append(nextWallBottom());
-			_xPos -= WALL_SEGMENT_WIDTH;
+		    RBootsView v = (RBootsView)host();
+		    if(!v.isPaused()) {
+			while(_xPos > pos().x) {
+			    _topEdges.append(nextWallTop());
+			    _bottomEdges.append(nextWallBottom());
+			    _xPos -= WALL_SEGMENT_WIDTH;
+			}
+			_leftEdge = pos().x;
+			while(_leftEdge < -WALL_SEGMENT_WIDTH) {
+			    _leftEdge += WALL_SEGMENT_WIDTH;
+			}
+			_bg.moveTo(_bg.pos().x + (vel().x / 2.0f),
+				   _bg.pos().y + (vel().y / 2.0f));
+			v.updateScoar((int)(-(pos().x) / 20.0f));
+			if(v.ogen() != null ) {
+			    v.ogen().update(-(pos().x));
+			}
+			if(!_stopped && ((int)_prevX / 1200) !=
+			   ((int)(pos().x) / 1200)) {
+			    setVel(vel().x * 1.2f,0.0f);
+			}
+			_prevX = pos().x;
+			DefaultBehaviorAgent.instance().act(aSprite);
 		    }
-		    _leftEdge = pos().x;
-		    while(_leftEdge < -WALL_SEGMENT_WIDTH) {
-			_leftEdge += WALL_SEGMENT_WIDTH;
-		    }
-		    _bg.moveTo(_bg.pos().x + (vel().x / 2.0f),
-			       _bg.pos().y + (vel().y / 2.0f));
 		}
 	    };
 	setAppearanceAgent(a);
@@ -106,6 +127,7 @@ public class RBootsWallSprite extends Sprite
 	    _topEdges.append(nextWallTop());
 	    _bottomEdges.append(nextWallBottom());
 	}
+	setVel(-1.0f,0.0f);
     }
 
     private int nextWallTop()
