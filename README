@@ -1,0 +1,92 @@
+Shiori and the Sweet Rocket Boots Source Release
+================================================
+
+This is the complete source code to _Shiori and the Sweet Rocket
+Boots_, a simple game for Android phones and tablets.
+
+Overview
+--------
+
+_SatSRB_ is similar in principle to the much simpler Flash game
+_Helicopter_, or the much more elaborate mobile game _Jetpack
+Joyride_: as Shiori moves forward automatically through the caverns,
+touch the screen to make her accelerate upwards, and release to let
+gravity take over and pull her down. Touching the floor, ceiling, or
+walls makes you lose a heart; the game is over when all three hearts
+are depleted. The game keeps track of score, reckoned as distance
+travelled in meters; and records your best score so far in its private
+data area.
+
+Building
+--------
+
+The game depends on SpriteCore-HC for Android, available at:
+
+http://github.com/bitwize/spritecore-hc-android
+
+The SpriteCore-HC directory should be in the same parent directory as
+this source tree. So if this file is in /home/foo/dev/rboots-android,
+you should also have a /home/foo/dev/spritecore-hc-android tree.
+
+It's a standard Android app tree aside from that. 'ant debug' and 'ant
+release' should work. I don't know anything about Eclipse; I do all my
+Android work inside Emacs and with command line tools, and recommend
+you do the same.
+
+Design Tidbits
+--------------
+
+The most notable feature of this game is its procedurally-generated
+terrain. Much like Shiori herself, the height of the terrain
+"accelerates" up and down. Terrain chunks are 8 pixels wide; the
+heights of the last 200 chunks are stored in a ring buffer. When a new
+chunk needs to be generated, the first derivative of the terrain
+height (stored in the \_wallTopFirstDeriv instance variable of
+RBootsWallSprite) is added to the height of the last chunk to
+determine the height of the new chunk. Note: _wallTopFirstDeriv is
+forced to 1 or -1 if the terrain height strays out of the range 10 to
+90 (measured in pixels from the top edge of the screen, positive
+downward). This is a negative feedback introduced to keep the terrain
+height within that range.
+
+Then, a random integer value is taken and the least significant 2 bits
+are looked at (a value from 0 to 3). If the 10th bit (starting from 0)
+of the random integer is a 1, then 0 to 3 is added to
+\_wallTopFirstDeriv (the height "accelerates" downwards); otherwise, 0
+to 3 is subtracted from \_wallTopFirstDeriv (the height "accelerates"
+upwards).
+
+These calculations are only undertaken for the ceiling; the height of
+the floor is always a fixed distance from the ceiling.
+
+This serves to create nice "rocky" terrain, with gentle rolling slopes
+punctuated by sudden craggy areas, at very low computational cost
+(O(n)).
+
+The relevant code for this is in the method
+RBootsWallSprite.nextWallTop() in
+src/net/parodycheck/rboots/RBootsWallSprite.java.
+
+Support the author!
+-------------------
+
+If you like this game and wish to see more Android games, please buy
+it on Google Play. It's only one dollar.
+
+Copyright
+---------
+
+All code, artwork, sound assets, and the characters Shiori and Shinji
+Kobayashi are copyright 2012, 2013 Jeffrey T. Read.
+
+The code is released under the Zlib license, contained in the file
+COPYING.code.
+
+All visual and sound assets (in short, everything in the res/
+directory) is licensed under the Creative Commons
+Attribution-NonCommercial 3.0 Unported License. To view a copy of this
+license, visit http://creativecommons.org/licenses/by-nc/3.0/.
+
+----
+
+Jeffrey T. Read <bitwize@gmail.com>
