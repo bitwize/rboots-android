@@ -4,6 +4,7 @@ import java.util.*;
 
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.*;
 import android.view.*;
 import android.graphics.*;
@@ -16,7 +17,7 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
     
 
     public enum GameState {
-	TITLE_SCREEN, RUNNING, PAUSED
+	TITLE_SCREEN, INSTRUCTION_SCREEN, RUNNING, PAUSED, GAMEOVER
     }
 
     RBootsActivity _myActivity;
@@ -25,8 +26,12 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
     Sprite _hearts[];
     Sprite _scoar1;
     Sprite _scoar2;
+    Sprite _bestScoar1;
+    Sprite _bestScoar2;
     Sprite _scoarDigits[];
+    Sprite _bestDigits[];
     Sprite _pauseSprite;
+    Sprite _itsoverSprite;
     RBootsWallSprite _walls;
     RBootsPlayer _player;
     RBootsObstacleGenerator _og;
@@ -34,14 +39,18 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
     SoundPool _pool;
     int _boost;
     int _hurt;
+    int _scoarval;
     ArrayList<Bitmap> _heartshape;
     ArrayList<Bitmap> _scoarshapes;
     ArrayList<Bitmap> _pauseshapes;
+    Bitmap _itsoverimg;
+    SharedPreferences _prefs;
 
     public RBootsView(RBootsActivity a)
     {
 	super(a);
 	_myActivity = a;
+	_prefs = a.getPreferences(android.content.Context.MODE_PRIVATE);
 	initTitle();
 	setEventAgent(this);
 	setViewportSize(480,320);
@@ -55,14 +64,24 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
     
     public void initTitle()
     {
-	Bitmap title = BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.title);
-	_bg = new Sprite(this,title);
+	Bitmap title = loadBitmap(R.drawable.title);
+	Bitmap insns = loadBitmap(R.drawable.instructions);
+	ArrayList<Bitmap> bl = new ArrayList<Bitmap>(2);
+	bl.add(title);
+	bl.add(insns);
+	_bg = new Sprite(this,bl);
 	_state = GameState.TITLE_SCREEN;
+    }
+
+    public void initInstructions()
+    {
+	_bg.setCurrentFrame(1);
+	_state = GameState.INSTRUCTION_SCREEN;
     }
 
     public void initGame()
     {
-	remove(_bg);
+	clear();
 	initSounds();
 	initBackground();
 	initWalls();
@@ -91,7 +110,7 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
 
     public void initBackground()
     {
-	Bitmap bgbmp = BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.bg1);
+	Bitmap bgbmp = loadBitmap(R.drawable.bg1);
 	_bg = new Sprite(this,bgbmp);
 	_bg.setAppearanceAgent(new RBootsBackgroundAppearanceAgent());
     }
@@ -105,8 +124,8 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
     public void initHearts()
     {
 	_heartshape = new ArrayList<Bitmap>(2);
-	_heartshape.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.redheart));
-	_heartshape.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.whiteheart));
+	_heartshape.add(loadBitmap(R.drawable.redheart));
+	_heartshape.add(loadBitmap(R.drawable.whiteheart));
 	_hearts = new Sprite[3];
 	for(int i=0;i<_hearts.length;i++) {
 	    _hearts[i] = new Sprite(this,_heartshape);
@@ -121,37 +140,48 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
 
     public void initPlayer()
     {
-	RBootsPlayer.initPlayerImgs(_myActivity);
+	RBootsPlayer.initPlayerImgs(this);
 	_player = new RBootsPlayer(this);
 	_player.moveTo(40.0f,144.0f);
     }
 
     public void initScoar()
     {
-	_scoarshapes = new ArrayList<Bitmap>(2);
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit0));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit1));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit2));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit3));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit4));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit5));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit6));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit7));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit8));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.digit9));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.meters));
-	_scoarshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.scoar));
+	_scoarshapes = new ArrayList<Bitmap>(10);
+	_scoarshapes.add(loadBitmap(R.drawable.digit0));
+	_scoarshapes.add(loadBitmap(R.drawable.digit1));
+	_scoarshapes.add(loadBitmap(R.drawable.digit2));
+	_scoarshapes.add(loadBitmap(R.drawable.digit3));
+	_scoarshapes.add(loadBitmap(R.drawable.digit4));
+	_scoarshapes.add(loadBitmap(R.drawable.digit5));
+	_scoarshapes.add(loadBitmap(R.drawable.digit6));
+	_scoarshapes.add(loadBitmap(R.drawable.digit7));
+	_scoarshapes.add(loadBitmap(R.drawable.digit8));
+	_scoarshapes.add(loadBitmap(R.drawable.digit9));
+	_scoarshapes.add(loadBitmap(R.drawable.meters));
+	_scoarshapes.add(loadBitmap(R.drawable.scoar));
+	_scoarshapes.add(loadBitmap(R.drawable.best));
 	_scoar1 = new Sprite(this,_scoarshapes);
 	_scoar1.setCurrentFrame(11);
 	_scoar1.moveTo(480.0f - _scoar1.shape().getWidth(), 0.0f);
 	_scoar2 = new Sprite(this,_scoarshapes);
 	_scoar2.setCurrentFrame(10);
 	_scoar2.moveTo(480.0f - _scoar2.shape().getWidth(), _scoar1.shape().getHeight());
+	_bestScoar1 = new Sprite(this,_scoarshapes);
+	_bestScoar1.setCurrentFrame(12);
+	_bestScoar1.moveTo(320.0f - _bestScoar1.shape().getWidth(), 0.0f);
+	_bestScoar2 = new Sprite(this,_scoarshapes);
+	_bestScoar2.setCurrentFrame(10);
+	_bestScoar2.moveTo(320.0f - _bestScoar2.shape().getWidth(), _bestScoar1.shape().getHeight());
 	_scoarDigits = new Sprite[6];
+	_bestDigits = new Sprite[6];
 	for(int i=0;i<_scoarDigits.length;i++) {
 	    _scoarDigits[i] = new Sprite(this,_scoarshapes);
+	    _bestDigits[i] = new Sprite(this,_scoarshapes);
 	}
+	_itsoverimg = loadBitmap(R.drawable.itsover);
 	updateScoar(0);
+	displayBest();
     }
 
     public void initSounds() {
@@ -162,8 +192,8 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
 
     public void initPause() {
 	_pauseshapes = new ArrayList<Bitmap>(2);
-	_pauseshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.pause));
-	_pauseshapes.add(BitmapFactory.decodeResource(_myActivity.getResources(),R.drawable.play));
+	_pauseshapes.add(loadBitmap(R.drawable.pause));
+	_pauseshapes.add(loadBitmap(R.drawable.play));
 	_pauseSprite = new Sprite(this,_pauseshapes);
 	_pauseSprite.moveTo(480.0f - _pauseSprite.shape().getWidth(),
 			    320.0f - _pauseSprite.shape().getHeight());
@@ -190,16 +220,34 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
 	    case TITLE_SCREEN:
 		handleEventTitle(e);
 		break;
+	    case INSTRUCTION_SCREEN:
+		handleEventInstructions(e);
+		break;
 	    case RUNNING:
 		handleEventRunning(e);
 		break;
 	    case PAUSED:
 		handleEventPaused(e);
 		break;
+	    case GAMEOVER:
+		handleEventGameOver(e);
+		break;
 	    }
     }
 
     public void handleEventTitle(InputEvent e)
+    {
+	if(e instanceof MotionEvent) {
+	    Log.e("RBootsView","got motion event");
+	    MotionEvent me = (MotionEvent)e;
+	    if(me.getAction() == MotionEvent.ACTION_DOWN) {
+		Log.e("RBootsView","action down received");
+		initInstructions();
+	    }
+	}
+    }
+
+    public void handleEventInstructions(InputEvent e)
     {
 	if(e instanceof MotionEvent) {
 	    Log.e("RBootsView","got motion event");
@@ -253,6 +301,11 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
 
     }
 
+    public void handleEventGameOver(InputEvent e)
+    {
+	handleEventInstructions(e);
+    }
+
     public RBootsWallSprite walls()
     {
 	return _walls;
@@ -270,11 +323,18 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
 
     public void signalDeath() {
 	_walls.setVel(0.0f,0.0f);
+	_player.thrustOff();
+	_itsoverSprite = new Sprite(this,_itsoverimg);
+	_itsoverSprite.moveTo((getViewportSize().x - _itsoverimg.getWidth()) / 2.0f,
+			      100.0f);
+	updateBest();
+	_state = GameState.GAMEOVER;
     }
 
     public void updateScoar(int newScoar)
     {
 	if(newScoar < 0) newScoar = -newScoar;
+	_scoarval = newScoar;
 	float x = _scoar2.pos().x - (_scoar2.shape().getWidth());
 	float y = _scoar1.shape().getHeight();
 	for(int i=0;i<_scoarDigits.length;i++) {
@@ -288,6 +348,34 @@ public class RBootsView extends SpriteCoreView implements SpriteCoreEventAgent
 	    }
 	    newScoar /= 10;
 	    x -= _scoarDigits[i].shape().getWidth();
+	}
+	
+    }
+
+    public void updateBest() {
+	if (_scoarval > _prefs.getInt("best",0)) {
+	    SharedPreferences.Editor e = _prefs.edit();
+	    e.putInt("best",_scoarval);
+	    e.commit();
+	}
+	displayBest();
+    }
+
+    public void displayBest() {
+	int best = _prefs.getInt("best",0);
+	float x = _bestScoar2.pos().x - (_bestScoar2.shape().getWidth());
+	float y = _bestScoar1.shape().getHeight();
+	for(int i=0;i<_bestDigits.length;i++) {
+	    _bestDigits[i].setCurrentFrame(best % 10);
+	    _bestDigits[i].moveTo(x - _bestDigits[i].shape().getWidth(),y);
+	    if(best <= 0) {
+		_bestDigits[i].setAppearanceAgent(_nullAppearanceAgent);
+	    }
+	    else {
+		_bestDigits[i].setAppearanceAgent(DefaultAppearanceAgent.instance());
+	    }
+	    best /= 10;
+	    x -= _bestDigits[i].shape().getWidth();
 	}
 	
     }

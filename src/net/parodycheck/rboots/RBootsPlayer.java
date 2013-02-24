@@ -9,7 +9,7 @@ import net.parodycheck.spritecorehc.*;
 public class RBootsPlayer extends Sprite
 {
 
-    private static Bitmap thePlayerImg;
+    private static ArrayList<Bitmap> thePlayerImgs;
     private static ArrayList<Bitmap> theFlameImgs;
     private SoundPool _pool;
     private int _boostID;
@@ -39,11 +39,13 @@ public class RBootsPlayer extends Sprite
     }
 
 
-    public static void initPlayerImgs(android.app.Activity a) {
-	thePlayerImg = BitmapFactory.decodeResource(a.getResources(),R.drawable.player);
+    public static void initPlayerImgs(RBootsView r) {
+	thePlayerImgs = new ArrayList<Bitmap>();
+	thePlayerImgs.add(r.loadBitmap(R.drawable.player));
+	thePlayerImgs.add(r.loadBitmap(R.drawable.playerdead));
 	theFlameImgs = new ArrayList<Bitmap>();
-	theFlameImgs.add(BitmapFactory.decodeResource(a.getResources(),R.drawable.flame0));
-	theFlameImgs.add(BitmapFactory.decodeResource(a.getResources(),R.drawable.flame1));
+	theFlameImgs.add(r.loadBitmap(R.drawable.flame0));
+	theFlameImgs.add(r.loadBitmap(R.drawable.flame1));
     }
 
     private float _accel;
@@ -52,7 +54,7 @@ public class RBootsPlayer extends Sprite
     private int _life;
     private Sprite _flame;
     public RBootsPlayer(RBootsView h) {
-	super(h,thePlayerImg);
+	super(h,thePlayerImgs);
 	_pool = h._pool;
 	_boostID = h._boost;
 	_hurtID = h._hurt;
@@ -163,6 +165,7 @@ public class RBootsPlayer extends Sprite
     private void die() {
 	_dead = true;
 	setAccel(0.1f);
+	setCurrentFrame(1);
 	RBootsView v = (RBootsView)host();
 	if(v != null) {
 	    v.signalDeath();
