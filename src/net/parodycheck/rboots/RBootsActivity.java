@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.content.pm.ActivityInfo;
 import android.view.*;
+import android.media.*;
 
 public class RBootsActivity extends Activity
 {
@@ -20,7 +21,8 @@ public class RBootsActivity extends Activity
 	_v = new RBootsView(this);
 	_v.setFocusable(true);
 	_v.requestFocus();
-	setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);	
+	setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+	setVolumeControlStream(AudioManager.STREAM_MUSIC);
 	setContentView(_v);
 	
     }
